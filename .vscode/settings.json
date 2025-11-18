@@ -1,0 +1,28 @@
+{
+  "cSpell.words": [
+    "backporch",
+    "CSRCS",
+    "DTOP",
+    "endmodule",
+    "frontporch",
+    "hsync",
+    "INCFLAGS",
+    "ledr",
+    "Mdir",
+    "noassert",
+    "NVBOARD",
+    "NXDC",
+    "pclk",
+    "posedge",
+    "readmemh",
+    "resetn",
+    "segs",
+    "TOPNAME",
+    "uart",
+    "VERILATOR",
+    "vmem",
+    "vsrc",
+    "VSRCS",
+    "vsync"
+  ]
+}
