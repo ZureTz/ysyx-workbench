@@ -1,6 +1,6 @@
 #include <cstdint>
 #include <cstdio>
-#include <iostream>
+#include <print>
 
 #define _CONCAT(x, y) x##y
 #define CONCAT(x, y) _CONCAT(x, y)
@@ -27,15 +27,14 @@
     }                                                                          \
   } while (0)
 
-typedef struct {
+struct Circuit {
   DEF_WIRE(clk, 1);
   DEF_WIRE(rst, 1);
   DEF_REG(led, 16);
   DEF_REG(count, 32);
-} Circuit;
-static Circuit circuit;
+};
 
-static void cycle(Circuit *c) {
+void cycle(Circuit *c) {
   c->led_update = 0;
   c->count_update = 0;
   if (c->rst) {
@@ -45,32 +44,34 @@ static void cycle(Circuit *c) {
     if (c->count == 0) {
       EVAL(c, led, (BITS(c->led, 14, 0) << 1) | BITS(c->led, 15, 15));
     }
-    EVAL(c, count, c->count >= 5000000 ? 0 : c->count + 1);
+    EVAL(c, count, c->count >= 20000000 ? 0 : c->count + 1);
   }
   UPDATE(c, led);
   UPDATE(c, count);
 }
 
-static void reset(Circuit *c) {
+void reset(Circuit *c) {
   c->rst = 1;
   cycle(c);
   c->rst = 0;
 }
 
-static void display(Circuit *c) {
+void display(Circuit *c) {
   static uint16_t last_led = 0;
   if (last_led != c->led) { // only update display when c->led changes
     for (int i = 0; i < 16; i++) {
-      std::cout << (BITS(c->led, i, i) ? 'o' : '.');
+      std::print("{}", BITS(c->led, i, i) ? 'o' : '.');
     }
-    std::cout << '\r' << std::flush;
+    std::print("\r");
+    std::fflush(stdout);
     last_led = c->led;
   }
 }
 
 int main(int argc, char *const argv[]) {
+  Circuit circuit = {};
   reset(&circuit);
-  while (1) {
+  while (true) {
     cycle(&circuit);
     display(&circuit);
   }
