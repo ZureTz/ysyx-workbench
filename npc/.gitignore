@@ -1,12 +1,11 @@
-*.*
-*
-!*/
-!Makefile
-!*.mk
-!*.[cSh]
-!*.v
-!*.cc
-!*.cpp
-!.gitignore
-!README.md
+# Xmake cache
+.xmake/
+.cache/
 build/
+
+# MacOS Cache
+.DS_Store
+
+# Clangd
+compile_commands.json
+
