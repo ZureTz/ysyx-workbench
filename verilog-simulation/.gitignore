@@ -1,0 +1,13 @@
+# Output files
+*.vcd 
+
+# cache
+.cache/
+obj_dir/
+
+# MacOS Cache
+.DS_Store
+
+# Clangd
+compile_commands.json
+
