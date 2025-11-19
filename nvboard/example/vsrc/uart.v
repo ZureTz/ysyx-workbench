@@ -1,6 +1,4 @@
-module uart (
-  output tx,
-  input rx
-);
-  assign tx = rx;
+module uart (output tx,
+             input rx);
+    assign tx = rx;
 endmodule
