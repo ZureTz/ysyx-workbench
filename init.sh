@@ -1,12 +1,14 @@
-#!/bin/zsh
+#!/bin/bash
 
 # usage: addenv env_name path
 function addenv() {
-  sed -i -e "/^export $1=.*/d" ~/.zshrc
-  echo "export $1=`readlink -f $2`" >> ~/.zshrc
-  echo "By default this script will add environment variables into ~/.zshrc."
-  echo "After that, please run 'source ~/.zshrc' to let these variables take effect."
-  echo "If you use shell other than bash, please add these environment variables manually."
+  # bash
+  sed -i -e "/^export $1=.*/d" ~/.bashrc
+  echo "export $1=`readlink -f $2`" >> ~/.bashrc
+
+  # fish
+  sed -i -e "/^set -x $1 .*/d" ~/.config/fish/config.fish
+  echo "set -x $1 `readlink -f $2`" >> ~/.config/fish/config.fish
 }
 
 # usage: init repo branch directory trace [env]
