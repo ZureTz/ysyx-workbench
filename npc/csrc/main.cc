@@ -1,79 +1,79 @@
-#include <cstdint>
-#include <cstdio>
+#include <memory>
 #include <print>
+#include <vector>
 
-#define _CONCAT(x, y) x##y
-#define CONCAT(x, y) _CONCAT(x, y)
-#define BITMASK(bits) ((1ull << (bits)) - 1)
+#include "Vtop.h"
+#include "verilated.h"
 
-// similar to x[hi:lo] in verilog
-#define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1))
-#define DEF_WIRE(name, w) uint64_t name : w
-#define DEF_REG(name, w)                                                       \
-  uint64_t name : w;                                                           \
-  uint64_t CONCAT(name, _next) : w;                                            \
-  uint64_t CONCAT(name, _update) : 1
+#include "include/parser.h"
 
-#define EVAL(c, name, val)                                                     \
-  do {                                                                         \
-    c->CONCAT(name, _next) = (val);                                            \
-    c->CONCAT(name, _update) = 1;                                              \
-  } while (0)
+constexpr int MAX_SIMULATION_CYCLES = 1000;
 
-#define UPDATE(c, name)                                                        \
-  do {                                                                         \
-    if (c->CONCAT(name, _update)) {                                            \
-      c->name = c->CONCAT(name, _next);                                        \
-    }                                                                          \
-  } while (0)
-
-struct Circuit {
-  DEF_WIRE(clk, 1);
-  DEF_WIRE(rst, 1);
-  DEF_REG(led, 16);
-  DEF_REG(count, 32);
+// Instruction memory
+// 0: 10001011 (8b) -> li r0, 11  (limit = 11)
+// 1: 10010000 (90) -> li r1, 0   (sum = 0)
+// 2: 10100001 (a1) -> li r2, 1   (increment = 1)
+// 3: 10110000 (b0) -> li r3, 0   (current number i = 0)
+// 4: 00010111 (17) -> add r1, r1, r3 (sum = sum + i)
+// 5: 00111110 (3e) -> add r3, r3, r2 (i = i + 1)
+// 6: 11010011 (d3) -> bner0 4, r3    (if i != limit, goto 4)
+std::vector<uint8_t> rom = {
+    0x8b, 0x90, 0xa1, 0xb0, 0x17, 0x3e, 0xd3, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-void cycle(Circuit *c) {
-  c->led_update = 0;
-  c->count_update = 0;
-  if (c->rst) {
-    EVAL(c, led, 1);
-    EVAL(c, count, 0);
+void step(Vtop *top) {
+  top->clk = 0;
+  top->eval();
+  top->clk = 1;
+  top->eval();
+  top->clk = 0;
+  top->eval();
+}
+
+int main(int argc, char **argv) {
+  Verilated::commandArgs(argc, argv);
+  const auto top = std::make_shared<Vtop>();
+
+  // Load instructions
+  for (int i = 0; i < 16; i++) {
+    top->instructions[i] = rom[i];
+  }
+
+  // Reset
+  top->rst = 1;
+  step(top.get());
+  top->rst = 0;
+
+  std::println("Simulation start");
+
+  // Simulation loop
+  for (int i = 0; i < MAX_SIMULATION_CYCLES; i++) {
+    std::println(
+        "Cycle {}: PC={}, Inst={:02x}, r0={}, r1={}, r2={}, r3={}, asm={}", i,
+        top->pc, rom[top->pc], top->regs[0], top->regs[1], top->regs[2],
+        top->regs[3], parse_instruction(rom[top->pc]));
+
+    step(top.get());
+
+    // Stop if PC points to beyond instruction memory
+    if (top->pc >= 16) {
+      break;
+    }
+
+    // Check for result
+    if (top->pc == 7 && top->regs[1] == 55) {
+      std::println("Result verified: sum = {}", top->regs[1]);
+      break;
+    }
+  }
+
+  if (top->regs[1] == 55) {
+    std::println("Test PASSED.");
   } else {
-    if (c->count == 0) {
-      EVAL(c, led, (BITS(c->led, 14, 0) << 1) | BITS(c->led, 15, 15));
-    }
-    EVAL(c, count, c->count >= 20000000 ? 0 : c->count + 1);
+    std::println("Test FAILED. Expected 55, got {}", top->regs[1]);
   }
-  UPDATE(c, led);
-  UPDATE(c, count);
-}
 
-void reset(Circuit *c) {
-  c->rst = 1;
-  cycle(c);
-  c->rst = 0;
-}
-
-void display(Circuit *c) {
-  static uint16_t last_led = 0;
-  if (last_led != c->led) { // only update display when c->led changes
-    for (int i = 0; i < 16; i++) {
-      std::print("{}", BITS(c->led, i, i) ? 'o' : '.');
-    }
-    std::print("\r");
-    std::fflush(stdout);
-    last_led = c->led;
-  }
-}
-
-int main(int argc, char *const argv[]) {
-  Circuit circuit = {};
-  reset(&circuit);
-  while (true) {
-    cycle(&circuit);
-    display(&circuit);
-  }
+  std::println("Simulation end");
   return 0;
 }

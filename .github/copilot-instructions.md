@@ -5,8 +5,14 @@ This repository is the workspace for the "One Student One Chip" (ysyx) project. 
 ## Project Architecture
 
 - **`npc/` (New Processor Core)**: The main CPU implementation.
-  - Uses `xmake` or `Makefile` for build management.
+  - Uses `Makefile` for build management.
   - Source code split into `vsrc/` (Verilog) and `csrc/` (C++ testbench).
+  - **Build Commands**:
+    - `make sim`: Build and run the CPU simulation.
+    - `make clean`: Clean build artifacts.
+    - `bear -- make sim`: Generate compilation database for IDEs.
+    - `make clean && bear -- make sim`: Clean and generate compilation database.
+
 - **`nvboard/` (NJU Virtual Board)**: A virtual FPGA board library based on SDL.
   - Provides virtual peripherals (LEDs, VGA, UART, Keyboard).
   - **Integration**: Projects link against `nvboard` and use `.nxdc` files for pin constraints.
