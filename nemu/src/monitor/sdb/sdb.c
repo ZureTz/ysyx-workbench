@@ -13,11 +13,15 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 
+#include <stdlib.h>
+
+#include <readline/history.h>
+#include <readline/readline.h>
+
 #include "sdb.h"
 #include <cpu/cpu.h>
 #include <isa.h>
-#include <readline/history.h>
-#include <readline/readline.h>
+#include <memory/vaddr.h>
 
 static int is_batch_mode = false;
 
@@ -52,6 +56,12 @@ static int cmd_q(char *args) { return -1; }
 
 static int cmd_help(char *args);
 
+static int cmd_si(char *args);
+
+static int cmd_info(char *args);
+
+static int cmd_x(char *args);
+
 static struct {
   const char *name;
   const char *description;
@@ -60,9 +70,9 @@ static struct {
     {"help", "Display information about all supported commands", cmd_help},
     {"c", "Continue the execution of the program", cmd_c},
     {"q", "Exit NEMU", cmd_q},
-
-    /* TODO: Add more commands */
-
+    {"si", "Halt NEMU after executing N instructions", cmd_si},
+    {"info", "Display the state of registers or watchpoints (r|w)", cmd_info},
+    {"x", "Scan memory", cmd_x},
 };
 
 #define NR_CMD ARRLEN(cmd_table)
@@ -78,6 +88,7 @@ static int cmd_help(char *args) {
       printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
     }
   } else {
+    // Has argument given
     for (i = 0; i < NR_CMD; i++) {
       if (strcmp(arg, cmd_table[i].name) == 0) {
         printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
@@ -85,6 +96,79 @@ static int cmd_help(char *args) {
       }
     }
     printf("Unknown command '%s'\n", arg);
+  }
+  return 0;
+}
+
+// Single step execution for given number of instructions
+static int cmd_si(char *args) {
+  /* extract the first argument */
+  const char *arg = strtok(NULL, " ");
+
+  // If no argument given, default to 1
+  int n = 1;
+
+  // If argument given, parse it as an integer
+  if (arg != NULL) {
+    n = atoi(arg);
+  }
+
+  // Execute n instructions
+  cpu_exec(n);
+
+  return 0;
+}
+
+// Display information about registers or watchpoints
+static int cmd_info(char *args) {
+  // extract the first argument
+  const char *arg = strtok(NULL, " ");
+
+  // Return if argument is invalid
+  if (arg == NULL || (strcmp(arg, "r") != 0 && strcmp(arg, "w") != 0)) {
+    printf("Invalid argument '%s'; Usage: info r|w\n", arg);
+    return 0;
+  }
+
+  // Display registers
+  if (strcmp(arg, "r") == 0) {
+    isa_reg_display();
+    return 0;
+  }
+
+  // Otherwise, display watchpoints
+  // wp_display();
+
+  return 0;
+}
+
+// Scan memory and display contents (s N EXPR)
+static int cmd_x(char *args) {
+  char *n_str = strtok(NULL, " ");
+  if (n_str == NULL) {
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+  int n = atoi(n_str);
+
+  char *expr_str = strtok(NULL, "");
+  if (expr_str == NULL) {
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  // Evaluate the expression to get the starting address
+  bool success = false;
+  vaddr_t addr = expr(expr_str, &success);
+
+  if (!success) {
+    printf("Invalid expression: %s\n", expr_str);
+    return 0;
+  }
+
+  for (int i = 0; i < n; i++) {
+    word_t val = vaddr_read(addr + i * 4, 4);
+    printf(FMT_WORD ": " FMT_WORD "\n", addr + i * 4, val);
   }
   return 0;
 }

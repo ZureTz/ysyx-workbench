@@ -13,6 +13,7 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 
+// #include "monitor/sdb/sdb.h"
 #include <common.h>
 
 void init_monitor(int, char *[]);
@@ -22,6 +23,9 @@ int is_exit_status_bad();
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. */
+  // Test expression evaluator
+  // test_expr();
+
 #ifdef CONFIG_TARGET_AM
   am_init_monitor();
 #else

@@ -16,13 +16,22 @@
 #include "local-include/reg.h"
 #include <isa.h>
 
-const char *regs[] = {"$0", "ra", "sp",  "gp",  "tp", "t0", "t1", "t2",
-                      "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
-                      "a6", "a7", "s2",  "s3",  "s4", "s5", "s6", "s7",
-                      "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
+const char *regs[] = {
+    "$0", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0", "s1", "a0",
+    "a1", "a2", "a3", "a4", "a5",  "a6",  "a7", "s2", "s3", "s4", "s5",
+    "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
+};
 
-// TODO: Implement the function 'isa_reg_display' and 'isa_reg_str2val'
+const int NR_REGS = sizeof(regs) / sizeof(regs[0]);
 
-void isa_reg_display() {}
+// Display all general purpose registers
+void isa_reg_display() {
+  // First, print general purpose registers
+  for (int i = 0; i < NR_REGS; i++) {
+    printf("%s: " FMT_WORD "  %u\n", reg_name(i), gpr(i), gpr(i));
+  }
+  // Then, print special registers
+  printf("pc: " FMT_WORD "  %u\n", cpu.pc, cpu.pc);
+}
 
 word_t isa_reg_str2val(const char *s, bool *success) { return 0; }
