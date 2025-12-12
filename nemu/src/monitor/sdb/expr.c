@@ -15,9 +15,8 @@
 
 #include <isa.h>
 
-/* We use the POSIX regex functions to process regular expressions.
- * Type 'man regex' for more information about POSIX regex functions.
- */
+// We use the POSIX regex functions to process regular expressions.
+// Type 'man regex' for more information about POSIX regex functions.
 #include <readline/chardefs.h>
 #include <regex.h>
 
@@ -27,20 +26,12 @@ enum {
   TK_DEC,
   TK_HEX,
   TK_NEG, // Negative operator (unary minus)
-
-  /* TODO: Add more token types */
-
 };
 
 static struct rule {
   const char *regex;
   int token_type;
 } rules[] = {
-
-    /* TODO: Add more rules.
-     * Pay attention to the precedence level of different rules.
-     */
-
     {" +", TK_NOTYPE},          // spaces
     {"\\+", '+'},               // plus
     {"-", '-'},                 // minus
@@ -55,17 +46,17 @@ static struct rule {
 
 #define NR_REGEX ARRLEN(rules)
 
-static regex_t re[NR_REGEX] = {};
+static regex_t compiled_regex_array[NR_REGEX] = {};
 
-/* Rules are used for many times.
- * Therefore we compile them only once before any usage.
- */
+// Rules are used for many times.
+// Therefore we compile them only once before any usage.
 void init_regex() {
   char error_msg[128];
   for (int i = 0; i < NR_REGEX; i++) {
-    const int ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED);
+    const int ret =
+        regcomp(&compiled_regex_array[i], rules[i].regex, REG_EXTENDED);
     if (ret != 0) {
-      regerror(ret, &re[i], error_msg, 128);
+      regerror(ret, &compiled_regex_array[i], error_msg, 128);
       panic("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
     }
   }
@@ -89,7 +80,7 @@ static bool make_token(char *e) {
   while (e[position] != '\0') {
     /* Try all rules one by one. */
     for (i = 0; i < NR_REGEX; i++) {
-      if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 &&
+      if (regexec(&compiled_regex_array[i], e + position, 1, &pmatch, 0) == 0 &&
           pmatch.rm_so == 0) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
@@ -245,7 +236,7 @@ static int find_main_operator(int p, int q) {
 }
 
 // Recursive evaluation of expression in tokens[p..q]
-static word_t eval(int p, int q, bool *success) {
+static word_t evaluate_tokens(int p, int q, bool *success) {
   if (p > q) {
     // Bad expression
     *success = false;
@@ -276,7 +267,7 @@ static word_t eval(int p, int q, bool *success) {
     }
     // The expression is surrounded by a matched pair of parentheses
     // Remove the parentheses and evaluate the inner expression
-    return eval(p + 1, q - 1, success);
+    return evaluate_tokens(p + 1, q - 1, success);
   }
 
   if (!*success) {
@@ -294,21 +285,23 @@ static word_t eval(int p, int q, bool *success) {
 
   // Handle unary negative operator
   if (tokens[op_pos].type == TK_NEG) {
-    word_t val = eval(op_pos + 1, q, success);
-    if (!*success)
+    word_t val = evaluate_tokens(op_pos + 1, q, success);
+    if (!*success) {
       return 0;
+    }
     return -val;
   }
 
   // Recursively evaluate the left and right subexpressions
-  word_t val1 = eval(p, op_pos - 1, success);
-  if (!*success)
+  word_t val1 = evaluate_tokens(p, op_pos - 1, success);
+  if (!*success) {
     return 0;
+  }
 
-  word_t val2 = eval(op_pos + 1, q, success);
-  if (!*success)
+  word_t val2 = evaluate_tokens(op_pos + 1, q, success);
+  if (!*success) {
     return 0;
-
+  }
   // Apply the operator
   switch (tokens[op_pos].type) {
   case '+':
@@ -332,12 +325,14 @@ static word_t eval(int p, int q, bool *success) {
   }
 }
 
-word_t expr(char *e, bool *success) {
+word_t parse_and_evaluate(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
     return 0;
   }
 
+  // Default to success
+  // (will be changed in evaluate_tokens() if any error occurs)
   *success = true;
-  return eval(0, nr_token - 1, success);
+  return evaluate_tokens(0, nr_token - 1, success);
 }

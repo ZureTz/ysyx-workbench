@@ -18,7 +18,6 @@
 
 #include <common.h>
 
-word_t expr(char *e, bool *success);
-int test_expr();
+word_t parse_and_evaluate(char *e, bool *success);
 
 #endif

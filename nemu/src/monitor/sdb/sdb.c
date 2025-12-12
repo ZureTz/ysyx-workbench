@@ -26,11 +26,11 @@
 static int is_batch_mode = false;
 
 void init_regex();
-void init_wp_pool();
+void init_watchpoint_pool();
 
 /* We use the `readline' library to provide more flexibility to read from stdin.
  */
-static char *rl_gets() {
+static char *retrieve_command() {
   static char *line_read = NULL;
 
   if (line_read) {
@@ -47,51 +47,56 @@ static char *rl_gets() {
   return line_read;
 }
 
-static int cmd_c(char *args) {
+static int command_continue(char *args) {
   cpu_exec(-1);
   return 0;
 }
 
-static int cmd_q(char *args) { return -1; }
+static int command_quit(char *args) { return -1; }
 
-static int cmd_help(char *args);
+static int command_help(char *args);
 
-static int cmd_si(char *args);
+static int command_step_instructions(char *args);
 
-static int cmd_info(char *args);
+static int command_info(char *args);
 
-static int cmd_x(char *args);
+static int command_scan(char *args);
 
-static struct {
+typedef struct {
   const char *name;
   const char *description;
   int (*handler)(char *);
-} cmd_table[] = {
-    {"help", "Display information about all supported commands", cmd_help},
-    {"c", "Continue the execution of the program", cmd_c},
-    {"q", "Exit NEMU", cmd_q},
-    {"si", "Halt NEMU after executing N instructions", cmd_si},
-    {"info", "Display the state of registers or watchpoints (r|w)", cmd_info},
-    {"x", "Scan memory", cmd_x},
+} command_props_t;
+
+static command_props_t command_table[] = {
+    {"help", "Display information about all supported commands", command_help},
+    {"c", "Continue the execution of the program", command_continue},
+    {"q", "Exit NEMU", command_quit},
+    {"si", "Halt NEMU after executing N instructions",
+     command_step_instructions},
+    {"info", "Display the state of registers or watchpoints (r|w)",
+     command_info},
+    {"x", "Scan memory", command_scan},
 };
 
-#define NR_CMD ARRLEN(cmd_table)
+#define LEN_COMMANDS ARRLEN(command_table)
 
-static int cmd_help(char *args) {
+static int command_help(char *args) {
   /* extract the first argument */
   char *arg = strtok(NULL, " ");
   int i;
 
   if (arg == NULL) {
     /* no argument given */
-    for (i = 0; i < NR_CMD; i++) {
-      printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+    for (i = 0; i < LEN_COMMANDS; i++) {
+      printf("%s - %s\n", command_table[i].name, command_table[i].description);
     }
   } else {
     // Has argument given
-    for (i = 0; i < NR_CMD; i++) {
-      if (strcmp(arg, cmd_table[i].name) == 0) {
-        printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+    for (i = 0; i < LEN_COMMANDS; i++) {
+      if (strcmp(arg, command_table[i].name) == 0) {
+        printf("%s - %s\n", command_table[i].name,
+               command_table[i].description);
         return 0;
       }
     }
@@ -101,7 +106,7 @@ static int cmd_help(char *args) {
 }
 
 // Single step execution for given number of instructions
-static int cmd_si(char *args) {
+static int command_step_instructions(char *args) {
   /* extract the first argument */
   const char *arg = strtok(NULL, " ");
 
@@ -120,7 +125,7 @@ static int cmd_si(char *args) {
 }
 
 // Display information about registers or watchpoints
-static int cmd_info(char *args) {
+static int command_info(char *args) {
   // extract the first argument
   const char *arg = strtok(NULL, " ");
 
@@ -143,7 +148,7 @@ static int cmd_info(char *args) {
 }
 
 // Scan memory and display contents (s N EXPR)
-static int cmd_x(char *args) {
+static int command_scan(char *args) {
   char *n_str = strtok(NULL, " ");
   if (n_str == NULL) {
     printf("Usage: x N EXPR\n");
@@ -159,7 +164,7 @@ static int cmd_x(char *args) {
 
   // Evaluate the expression to get the starting address
   bool success = false;
-  vaddr_t addr = expr(expr_str, &success);
+  vaddr_t addr = parse_and_evaluate(expr_str, &success);
 
   if (!success) {
     printf("Invalid expression: %s\n", expr_str);
@@ -177,11 +182,11 @@ void sdb_set_batch_mode() { is_batch_mode = true; }
 
 void sdb_mainloop() {
   if (is_batch_mode) {
-    cmd_c(NULL);
+    command_continue(NULL);
     return;
   }
 
-  for (char *str; (str = rl_gets()) != NULL;) {
+  for (char *str; (str = retrieve_command()) != NULL;) {
     char *str_end = str + strlen(str);
 
     /* extract the first token as the command */
@@ -204,16 +209,16 @@ void sdb_mainloop() {
 #endif
 
     int i;
-    for (i = 0; i < NR_CMD; i++) {
-      if (strcmp(cmd, cmd_table[i].name) == 0) {
-        if (cmd_table[i].handler(args) < 0) {
+    for (i = 0; i < LEN_COMMANDS; i++) {
+      if (strcmp(cmd, command_table[i].name) == 0) {
+        if (command_table[i].handler(args) < 0) {
           return;
         }
         break;
       }
     }
 
-    if (i == NR_CMD) {
+    if (i == LEN_COMMANDS) {
       printf("Unknown command '%s'\n", cmd);
     }
   }
@@ -224,5 +229,5 @@ void init_sdb() {
   init_regex();
 
   /* Initialize the watchpoint pool. */
-  init_wp_pool();
+  init_watchpoint_pool();
 }
