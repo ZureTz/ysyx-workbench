@@ -14,6 +14,7 @@
  ***************************************************************************************/
 
 #include "local-include/reg.h"
+#include <ctype.h>
 #include <isa.h>
 
 const char *regs[] = {
@@ -34,4 +35,30 @@ void isa_reg_display() {
   printf("pc: " FMT_WORD "  %u\n", cpu.pc, cpu.pc);
 }
 
-word_t isa_reg_str2val(const char *s, bool *success) { return 0; }
+word_t isa_reg_str2val(const char *s, bool *success) {
+  *success = true;
+
+  // Check for special register: pc
+  if (strcmp(s, "pc") == 0) {
+    return cpu.pc;
+  }
+
+  // Check for x0-x31 format
+  if (s[0] == 'x' && isdigit(s[1])) {
+    int idx = atoi(s + 1);
+    if (idx >= 0 && idx < NR_REGS) {
+      return gpr(idx);
+    }
+  }
+
+  // Check for register names
+  for (int i = 0; i < NR_REGS; i++) {
+    if (strcmp(s, regs[i]) == 0) {
+      return gpr(i);
+    }
+  }
+
+  // Register not found
+  *success = false;
+  return 0;
+}

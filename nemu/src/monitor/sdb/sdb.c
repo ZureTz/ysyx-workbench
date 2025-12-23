@@ -62,6 +62,12 @@ static int command_info(char *args);
 
 static int command_scan(char *args);
 
+static int command_print(char *args);
+
+static int command_watch(char *args);
+
+static int command_delete(char *args);
+
 typedef struct {
   const char *name;
   const char *description;
@@ -77,6 +83,9 @@ static command_props_t command_table[] = {
     {"info", "Display the state of registers or watchpoints (r|w)",
      command_info},
     {"x", "Scan memory", command_scan},
+    {"p", "Evaluate expression", command_print},
+    {"w", "Set watchpoint", command_watch},
+    {"d", "Delete watchpoint", command_delete},
 };
 
 #define LEN_COMMANDS ARRLEN(command_table)
@@ -142,7 +151,7 @@ static int command_info(char *args) {
   }
 
   // Otherwise, display watchpoints
-  // wp_display();
+  display_watchpoints();
 
   return 0;
 }
@@ -174,6 +183,58 @@ static int command_scan(char *args) {
   for (int i = 0; i < n; i++) {
     word_t val = vaddr_read(addr + i * 4, 4);
     printf(FMT_WORD ": " FMT_WORD "\n", addr + i * 4, val);
+  }
+  return 0;
+}
+
+// Evaluate and print expression
+static int command_print(char *args) {
+  if (args == NULL) {
+    printf("Usage: p EXPR\n");
+    return 0;
+  }
+
+  bool success = false;
+  word_t result = parse_and_evaluate(args, &success);
+
+  if (!success) {
+    printf("Invalid expression: %s\n", args);
+    return 0;
+  }
+
+  printf(FMT_WORD "\n", result);
+  return 0;
+}
+
+// Set watchpoint
+static int command_watch(char *args) {
+  if (args == NULL) {
+    printf("Usage: w EXPR\n");
+    return 0;
+  }
+
+  WP *wp = create_watchpoint(args);
+  if (wp == NULL) {
+    printf("Failed to create watchpoint: invalid expression\n");
+    return 0;
+  }
+
+  printf("Watchpoint %d: %s\n", wp->NO, wp->expr);
+  return 0;
+}
+
+// Delete watchpoint
+static int command_delete(char *args) {
+  if (args == NULL) {
+    printf("Usage: d N\n");
+    return 0;
+  }
+
+  int no = atoi(args);
+  if (delete_watchpoint(no)) {
+    printf("Deleted watchpoint %d\n", no);
+  } else {
+    printf("Watchpoint %d not found\n", no);
   }
   return 0;
 }

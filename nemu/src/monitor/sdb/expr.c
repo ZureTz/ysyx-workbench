@@ -17,6 +17,7 @@
 
 // We use the POSIX regex functions to process regular expressions.
 // Type 'man regex' for more information about POSIX regex functions.
+#include <memory/vaddr.h>
 #include <readline/chardefs.h>
 #include <regex.h>
 
@@ -25,23 +26,30 @@ enum {
   TK_EQ,
   TK_DEC,
   TK_HEX,
-  TK_NEG, // Negative operator (unary minus)
+  TK_NEG,   // Negative operator (unary minus)
+  TK_DEREF, // Pointer dereference (unary *)
+  TK_REG,   // Register (starts with $)
+  TK_NEQ,   // Not equal (!=)
+  TK_AND,   // Logical AND (&&)
 };
 
 static struct rule {
   const char *regex;
   int token_type;
 } rules[] = {
-    {" +", TK_NOTYPE},          // spaces
-    {"\\+", '+'},               // plus
-    {"-", '-'},                 // minus
-    {"\\*", '*'},               // multiply
-    {"/", '/'},                 // divide
-    {"\\(", '('},               // left parenthesis
-    {"\\)", ')'},               // right parenthesis
-    {"0x[0-9a-fA-F]+", TK_HEX}, // hex number
-    {"[0-9]+", TK_DEC},         // decimal number
-    {"==", TK_EQ},              // equal
+    {" +", TK_NOTYPE},           // spaces
+    {"\\+", '+'},                // plus
+    {"-", '-'},                  // minus
+    {"\\*", '*'},                // multiply
+    {"/", '/'},                  // divide
+    {"\\(", '('},                // left parenthesis
+    {"\\)", ')'},                // right parenthesis
+    {"0x[0-9a-fA-F]+", TK_HEX},  // hex number
+    {"[0-9]+", TK_DEC},          // decimal number
+    {"==", TK_EQ},               // equal
+    {"!=", TK_NEQ},              // not equal
+    {"&&", TK_AND},              // logical AND
+    {"\\$[a-zA-Z0-9]+", TK_REG}, // register (starts with $)
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -95,6 +103,7 @@ static bool make_token(char *e) {
           break;
         case TK_DEC:
         case TK_HEX:
+        case TK_REG: // Also save register names
           if (substr_len >= 32) {
             printf("Token too long at position %d\n", position - substr_len);
             return false;
@@ -120,31 +129,33 @@ static bool make_token(char *e) {
     }
   }
 
-  // Identify negative operators
-  // (distinguish from minus, as it is identified as a TK_NEG)
-
-  // A '-' is a negative operator if:
-  // 1. It's at the beginning of the expression, OR
-  // 2. The previous token is an operator or '('
+  // Identify negative operators and dereference operators
+  // A '-' is a negative operator if it's at the beginning or after an
+  // operator/parenthesis A '*' is a dereference operator if it's at the
+  // beginning or after an operator/parenthesis
   for (int i = 0; i < nr_token; i++) {
-    // Filter out non '-' tokens
-    if (tokens[i].type != '-') {
-      continue;
-    }
+    if (tokens[i].type == '-' || tokens[i].type == '*') {
+      bool is_unary = false;
 
-    // Check the conditions for negative operator
+      if (i == 0) {
+        is_unary = true;
+      } else {
+        int prev_type = tokens[i - 1].type;
+        // Unary if previous token is an operator or '('
+        if (prev_type == '+' || prev_type == '-' || prev_type == '*' ||
+            prev_type == '/' || prev_type == '(' || prev_type == TK_EQ ||
+            prev_type == TK_NEQ || prev_type == TK_AND) {
+          is_unary = true;
+        }
+      }
 
-    // If '-' is the first token
-    if (i == 0) {
-      tokens[i].type = TK_NEG;
-      continue;
-    }
-
-    // Check the previous token
-    int prev_type = tokens[i - 1].type;
-    if (prev_type == '+' || prev_type == '-' || prev_type == '*' ||
-        prev_type == '/' || prev_type == '(' || prev_type == TK_EQ) {
-      tokens[i].type = TK_NEG;
+      if (is_unary) {
+        if (tokens[i].type == '-') {
+          tokens[i].type = TK_NEG;
+        } else {
+          tokens[i].type = TK_DEREF;
+        }
+      }
     }
   }
 
@@ -210,14 +221,16 @@ static int find_main_operator(int p, int q) {
 
     // Determine precedence (lower number = lower precedence = evaluated last)
     int precedence = 100;
-    if (tokens[i].type == '+' || tokens[i].type == '-') {
-      precedence = 1;
-    } else if (tokens[i].type == '*' || tokens[i].type == '/') {
+    if (tokens[i].type == TK_AND) {
+      precedence = 0; // Logical AND has lowest precedence
+    } else if (tokens[i].type == TK_EQ || tokens[i].type == TK_NEQ) {
+      precedence = 1; // Equality operators
+    } else if (tokens[i].type == '+' || tokens[i].type == '-') {
       precedence = 2;
-    } else if (tokens[i].type == TK_NEG) {
-      precedence = 3; // Unary operators have higher precedence
-    } else if (tokens[i].type == TK_EQ) {
-      precedence = 0;
+    } else if (tokens[i].type == '*' || tokens[i].type == '/') {
+      precedence = 3;
+    } else if (tokens[i].type == TK_NEG || tokens[i].type == TK_DEREF) {
+      precedence = 4; // Unary operators have higher precedence
     } else {
       // Not an operator
       continue;
@@ -243,7 +256,7 @@ static word_t evaluate_tokens(int p, int q, bool *success) {
     return 0;
   }
 
-  // Single token - should be a number
+  // Single token - should be a number or register
   if (p == q) {
     word_t num;
     if (tokens[p].type == TK_DEC) {
@@ -252,8 +265,11 @@ static word_t evaluate_tokens(int p, int q, bool *success) {
     } else if (tokens[p].type == TK_HEX) {
       sscanf(tokens[p].str, "%x", &num);
       return num;
+    } else if (tokens[p].type == TK_REG) {
+      // Get register value (skip the '$' prefix)
+      return isa_reg_str2val(tokens[p].str + 1, success);
     } else {
-      // Not a number
+      // Not a valid token
       *success = false;
       return 0;
     }
@@ -283,13 +299,22 @@ static word_t evaluate_tokens(int p, int q, bool *success) {
     return 0;
   }
 
-  // Handle unary negative operator
+  // Handle unary operators
   if (tokens[op_pos].type == TK_NEG) {
     word_t val = evaluate_tokens(op_pos + 1, q, success);
     if (!*success) {
       return 0;
     }
     return -val;
+  }
+
+  if (tokens[op_pos].type == TK_DEREF) {
+    word_t addr = evaluate_tokens(op_pos + 1, q, success);
+    if (!*success) {
+      return 0;
+    }
+    // Read 4 bytes (word_t size) from memory at address
+    return vaddr_read(addr, sizeof(word_t));
   }
 
   // Recursively evaluate the left and right subexpressions
@@ -319,6 +344,10 @@ static word_t evaluate_tokens(int p, int q, bool *success) {
     return val1 / val2;
   case TK_EQ:
     return val1 == val2;
+  case TK_NEQ:
+    return val1 != val2;
+  case TK_AND:
+    return val1 && val2;
   default:
     *success = false;
     return 0;
