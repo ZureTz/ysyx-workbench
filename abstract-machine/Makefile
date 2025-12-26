@@ -5,6 +5,11 @@ html:
 	cat Makefile | sed 's/^\([^#]\)/    \1/g' | markdown_py > Makefile.html
 .PHONY: html
 
+### Generate compile_commands.json for IDE support
+compile_commands:
+	@bash $(AM_HOME)/gen_compile_commands.sh $(ARCH)
+.PHONY: compile_commands
+
 ## 1. Basic Setup and Checks
 
 ### Default to create a bare-metal kernel image
@@ -13,8 +18,8 @@ ifeq ($(MAKECMDGOALS),)
   .DEFAULT_GOAL = image
 endif
 
-### Override checks when `make clean/clean-all/html`
-ifeq ($(findstring $(MAKECMDGOALS),clean|clean-all|html),)
+### Override checks when `make clean/clean-all/html/compile_commands`
+ifeq ($(findstring $(MAKECMDGOALS),clean|clean-all|html|compile_commands),)
 
 ### Print build info message
 $(info # Building $(NAME)-$(MAKECMDGOALS) [$(ARCH)])
