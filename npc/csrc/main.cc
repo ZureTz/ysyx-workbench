@@ -5,7 +5,7 @@
 #include "Vtop.h"
 #include "verilated.h"
 
-#include "include/parser.h"
+#include "parser.h"
 
 constexpr int MAX_SIMULATION_CYCLES = 1000;
 
@@ -31,7 +31,7 @@ void step(Vtop *top) {
   top->eval();
 }
 
-int main(int argc, char **argv) {
+int main(int argc, const char *argv[]) {
   Verilated::commandArgs(argc, argv);
   const auto top = std::make_shared<Vtop>();
 

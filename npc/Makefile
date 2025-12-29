@@ -7,7 +7,7 @@ OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
 
 VERILATOR = verilator
-VERILATOR_FLAGS = --cc --exe --build --trace -j 0 -Wall -Wno-DECLFILENAME -CFLAGS "-std=c++23"
+VERILATOR_FLAGS = --cc --exe --build --trace -j 0 -Wall -Wno-DECLFILENAME -CFLAGS "-std=c++23 -I$(abspath ./csrc/include)"
 
 sim: $(BIN)
 	$(BIN)
