@@ -1,32 +1,35 @@
 module register_file (
     input clk,
-    input rst,
-    input [1:0] rd,
-    input [1:0] rs1,
-    input [1:0] rs2,
-    input [7:0] write_data,
-    input write_enable,
-    output [7:0] read_data1,
-    output [7:0] read_data2,
-    output [7:0] regs[4]
+    input reset,
+    input [4:0] rd,
+    input [4:0] rs1,
+    input [4:0] rs2,
+    input [31:0] data,
+    input write_en,
+    output [31:0] rsa,
+    output [31:0] rsb
 );
 
-  reg [7:0] registers[4];
+  // 32 registers, each 32 bits wide
+  reg [31:0] registers[32];
 
-  assign regs = registers;
+  // Read operations (combinational logic)
+  // x0 is hardwired to 0
+  assign rsa = (rs1 == 5'b0) ? 32'b0 : registers[rs1];
+  assign rsb = (rs2 == 5'b0) ? 32'b0 : registers[rs2];
 
-  // Initialize registers to zero on reset
+  // Write operation (sequential logic)
   integer i;
-  always @(posedge clk or posedge rst) begin
-    if (rst) begin
-      for (i = 0; i < 4; i = i + 1) begin
-        registers[i] <= 8'b0;
+  always @(posedge clk) begin
+    if (reset) begin
+      // Reset all registers to 0
+      for (i = 0; i < 32; i = i + 1) begin
+        registers[i] <= 32'b0;
       end
-    end else if (write_enable) begin
-      registers[rd] <= write_data;
+    end else if (write_en && rd != 5'b0) begin
+      // Write to register rd if write_en is high and rd is not x0
+      registers[rd] <= data;
     end
   end
 
-  assign read_data1 = registers[rs1];
-  assign read_data2 = registers[rs2];
 endmodule
