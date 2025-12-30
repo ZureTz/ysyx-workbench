@@ -11,7 +11,8 @@ module instruction_decoder (
     output jalr,
     output lui,
     output load,
-    output store
+    output store,
+    output ebreak
 );
 
   // Field extraction
@@ -30,6 +31,9 @@ module instruction_decoder (
   assign lui    = (opcode == 7'h37);
   assign load   = (opcode == 7'h03);
   assign store  = (opcode == 7'h23);
+
+  // ebreak instruction: 0x00100073
+  assign ebreak = (instruction == 32'h00100073);
 
   // Immediate generation
   wire [31:0] I_immediate;

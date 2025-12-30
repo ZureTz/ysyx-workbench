@@ -1,80 +1,48 @@
 module top (
     input clk,
-    input rst,
-    input [7:0] instructions[16],
-    output [3:0] pc,
-    output [7:0] regs[4]
+    input rst
 );
 
-  // Signals
-  wire [7:0] instruction;
-  wire is_add, is_li, is_bner0;
-  wire [1:0] rd, rs1, rs2;
-  wire [3:0] imm, addr;
-  wire [7:0] rdata1, rdata2;
-  reg [7:0] wdata;
-  wire wen;
-  wire should_jump;
-  wire [1:0] raddr1;
+  // Wires for instruction memory
+  wire [31:0] instruction_addr;
+  wire [31:0] instruction;
 
-  // Program Counter
-  program_counter u_pc (
+  // Wires for data memory
+  wire [31:0] data_addr;
+  wire [31:0] data_r_data;
+  wire [31:0] data_w_data;
+  wire data_w_enable;
+  wire [3:0] data_w_mask;
+
+  // CPU Core
+  core core_inst (
       .clk(clk),
-      .rst(rst),
-      .addr(addr),
-      .should_jump(should_jump),
-      .pc(pc)
-  );
-
-  // Instruction Decoder
-  assign instruction = instructions[pc];
-
-  instruction_decoder u_dec (
+      .reset(rst),
       .instruction(instruction),
-      .is_add(is_add),
-      .is_li(is_li),
-      .is_bner0(is_bner0),
-      .rd(rd),
-      .rs1(rs1),
-      .rs2(rs2),
-      .imm(imm),
-      .addr(addr)
+      .r_data(data_r_data),
+      .instruction_addr(instruction_addr),
+      .addr(data_addr),
+      .w_data(data_w_data),
+      .w_enable(data_w_enable),
+      .w_mask(data_w_mask)
   );
 
-  // Control Logic
-  assign wen = is_add | is_li;
+  // Instruction Memory
+  memory imem (
+      .addr(instruction_addr),
+      .w_data(32'b0),
+      .w_mask(4'b0),
+      .w_enable(1'b0),
+      .r_data(instruction)
+  );
 
-  // For bner0, we compare R[0] with R[rs2]. So raddr1 must be 0.
-  // For add, raddr1 is rs1.
-  assign raddr1 = is_bner0 ? 2'b00 : rs1;
-
-  // ALU / Write Data Mux
-  always_comb begin
-    if (is_add) begin
-      wdata = rdata1 + rdata2;
-    end else if (is_li) begin
-      wdata = {4'b0000, imm};
-    end else begin
-      wdata = 8'b0;
-    end
-  end
-
-  // Branch Logic
-  // bner0: if (R[0] != R[rs2]) PC = addr
-  assign should_jump = is_bner0 && (rdata1 != rdata2);
-
-  // Register File
-  register_file u_rf (
-      .clk(clk),
-      .rst(rst),
-      .rd(rd),
-      .rs1(raddr1),
-      .rs2(rs2),
-      .write_data(wdata),
-      .write_enable(wen),
-      .read_data1(rdata1),
-      .read_data2(rdata2),
-      .regs(regs)
+  // Data Memory
+  memory dmem (
+      .addr(data_addr),
+      .w_data(data_w_data),
+      .w_mask(data_w_mask),
+      .w_enable(data_w_enable),
+      .r_data(data_r_data)
   );
 
 endmodule
