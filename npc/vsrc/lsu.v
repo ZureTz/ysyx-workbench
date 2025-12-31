@@ -23,13 +23,12 @@ module lsu (
   wire is_unsigned = funct3[2];  // Unsigned operation (LBU/LHU)
 
   // Write enable: only when store is active
-  assign w_enable = store;
+  assign w_enable   = store;
 
   // ===== WRITE PATH =====
-  // For byte store: just pass the byte in the lowest 8 bits
-  // The wmask will control which byte position to write
+  // For byte store: shift the byte to the correct position based on address
   // For word store: pass all 32 bits
-  assign w_data_out = w_data_in;
+  assign w_data_out = (is_b) ? (w_data_in << {low_addr, 3'b0}) : w_data_in;
 
   // ===== READ PATH =====
   // Select byte from r_data_in based on low_addr
