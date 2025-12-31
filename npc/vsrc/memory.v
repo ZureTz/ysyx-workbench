@@ -1,10 +1,11 @@
 module memory (
-    input [31:0] addr,
-    input [31:0] w_data,
-    input [3:0] w_mask,
-    input w_enable,
-    input [31:0] pc_debug,
-    input is_instr,
+    input             clk,
+    input      [31:0] addr,
+    input      [31:0] w_data,
+    input      [ 3:0] w_mask,
+    input             w_enable,
+    input      [31:0] pc_debug,
+    input             is_instr,
     output reg [31:0] r_data
 );
 
@@ -21,11 +22,11 @@ module memory (
     input int  pc
   );
 
-  // Memory read/write logic
-  always_comb begin
-    // Always read from memory (address aligned to 4 bytes)
-    r_data = pmem_read(addr, pc_debug, is_instr);
+  // Always read from memory (address aligned to 4 bytes)
+  assign r_data = pmem_read(addr, pc_debug, is_instr);
 
+  // Memory read/write logic
+  always @(posedge clk) begin
     // Write to memory when w_enable is high
     if (w_enable) begin
       pmem_write(addr, w_data, {4'b0, w_mask[3:0]}, pc_debug);

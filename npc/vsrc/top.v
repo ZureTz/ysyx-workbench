@@ -36,6 +36,7 @@ module top (
 
   // Instruction Memory
   memory imem (
+      .clk(clk),
       .addr(instruction_addr),
       .w_data(32'b0),
       .w_mask(4'b0),
@@ -47,6 +48,7 @@ module top (
 
   // Data Memory
   memory dmem (
+      .clk(clk),
       .addr(data_addr),
       .w_data(data_w_data),
       .w_mask(data_w_mask),

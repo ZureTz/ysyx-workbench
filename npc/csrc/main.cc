@@ -4,6 +4,7 @@
 #include "Vtop.h"
 #include "verilated.h"
 
+#include "device.h"
 #include "ebreak.h"
 #include "pmem.h"
 
@@ -24,8 +25,9 @@ int main(int argc, char const *argv[]) {
   // Create top module instance
   Vtop *top = new Vtop;
 
-  // Initialize physical memory
+  // Initialize physical memory and devices
   init_pmem(img_file);
+  init_device();
   reset_ebreak();
 
   // Reset sequence
@@ -50,8 +52,7 @@ int main(int argc, char const *argv[]) {
   bool success = false;
 
   printf("Starting NPC simulation...\n");
-  printf("Initial PC after reset: 0x%08x\n", top->instruction_addr_debug);
-  printf("Cycle %lu: PC=0x%08x, Inst=0x%08x\n", cycle_count,
+  printf("Initial PC after reset: 0x%08x\n, Inst=0x%08x\n",
          top->instruction_addr_debug, top->instruction_debug);
 
 #ifdef MAX_SIM_CYCLES
@@ -80,6 +81,18 @@ int main(int argc, char const *argv[]) {
       printf("\n[HIT GOOD TRAP] ebreak executed at cycle %lu\n", cycle_count);
       success = true;
       break;
+    }
+
+    // Check for invalid instruction (all zeros = illegal instruction)
+    // Skip check for first few cycles during initialization
+    if (cycle_count > 5) {
+      uint32_t current_inst = top->instruction_debug;
+      if (current_inst == 0x00000000) {
+        printf("\n[HIT BAD TRAP] Invalid instruction (0x00000000) detected at "
+               "PC=0x%08x, cycle %lu\n",
+               top->instruction_addr_debug, cycle_count);
+        break;
+      }
     }
 
     // Negative edge

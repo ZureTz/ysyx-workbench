@@ -26,20 +26,10 @@ module lsu (
   assign w_enable = store;
 
   // ===== WRITE PATH =====
-  // Select byte from w_data_in based on low_addr
-  wire [31:0] byte_sel_00 = {24'b0, w_data_in[7:0]} << 0;
-  wire [31:0] byte_sel_01 = {24'b0, w_data_in[15:8]} << 8;
-  wire [31:0] byte_sel_10 = {24'b0, w_data_in[23:16]} << 16;
-  wire [31:0] byte_sel_11 = {24'b0, w_data_in[31:24]} << 24;
-
-  // Multiplex based on low_addr to select which byte to write
-  wire [31:0] selected_write_word = (low_addr == 2'b00) ? byte_sel_00 :
-                                    (low_addr == 2'b01) ? byte_sel_01 :
-                                    (low_addr == 2'b10) ? byte_sel_10 :
-                                                          byte_sel_11;
-
-  // Output write data
-  assign w_data_out = is_b ? selected_write_word : w_data_in;
+  // For byte store: just pass the byte in the lowest 8 bits
+  // The wmask will control which byte position to write
+  // For word store: pass all 32 bits
+  assign w_data_out = w_data_in;
 
   // ===== READ PATH =====
   // Select byte from r_data_in based on low_addr

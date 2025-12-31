@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "device.h"
 #include "pmem.h"
 
 // Physical memory storage
@@ -62,6 +63,18 @@ void init_pmem(const char *img_file) {
 extern "C" int pmem_read(int raddr, int pc, unsigned char is_instruction) {
   uint32_t addr = (uint32_t)raddr & ~0x3u; // Align to 4 bytes
 
+  // Check if this is a device address (MMIO)
+  if (is_device_addr(addr)) {
+    // Don't allow instruction fetch from device
+    if (is_instruction) {
+      printf("Error: Trying to fetch instruction from device address 0x%08x "
+             "(PC=0x%08x)\n",
+             addr, (uint32_t)pc);
+      return 0;
+    }
+    return device_read(addr);
+  }
+
   if (!in_pmem(addr)) {
     if (is_instruction) {
       // Instruction fetch from invalid address is a critical error
@@ -81,6 +94,14 @@ extern "C" int pmem_read(int raddr, int pc, unsigned char is_instruction) {
 // DPI-C function: Write up to 4 bytes to aligned address with byte mask
 extern "C" void pmem_write(int waddr, int wdata, char wmask, int pc) {
   uint32_t addr = (uint32_t)waddr & ~0x3u; // Align to 4 bytes
+
+  // Check if this is a device address (MMIO)
+  if (is_device_addr(addr)) {
+    printf("\nWriting to device address 0x%08x from PC=0x%08x\n", addr,
+           (uint32_t)pc);
+    device_write(addr, wdata, wmask, pc);
+    return;
+  }
 
   if (!in_pmem(addr)) {
     printf("Error: Write address 0x%08x out of bound (PC=0x%08x)\n", addr,
