@@ -78,8 +78,18 @@ int main(int argc, char const *argv[]) {
 
     // Check for ebreak after positive edge
     if (is_ebreak()) {
-      printf("\n[HIT GOOD TRAP] ebreak executed at cycle %lu\n", cycle_count);
-      success = true;
+      int exit_code = get_ebreak_code();
+      if (exit_code == 0) {
+        printf("\n[HIT GOOD TRAP] ebreak executed at cycle %lu, exit code = "
+               "%d\n",
+               cycle_count, exit_code);
+        success = true;
+      } else {
+        printf("\n[HIT BAD TRAP] ebreak executed at cycle %lu, exit code = "
+               "%d\n",
+               cycle_count, exit_code);
+        success = false;
+      }
       break;
     }
 

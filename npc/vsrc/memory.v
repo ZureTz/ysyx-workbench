@@ -1,12 +1,12 @@
 module memory (
-    input             clk,
-    input      [31:0] addr,
-    input      [31:0] w_data,
-    input      [ 3:0] w_mask,
-    input             w_enable,
-    input      [31:0] pc_debug,
-    input             is_instr,
-    output reg [31:0] r_data
+    input         clk,
+    input  [31:0] addr,
+    input  [31:0] w_data,
+    input  [ 3:0] w_mask,
+    input         w_enable,
+    input  [31:0] pc_debug,
+    input         is_instr,
+    output [31:0] r_data
 );
 
   // Import DPI-C functions for memory access

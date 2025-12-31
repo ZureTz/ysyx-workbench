@@ -7,7 +7,8 @@ module register_file (
     input [31:0] data,
     input write_en,
     output [31:0] rsa,
-    output [31:0] rsb
+    output [31:0] rsb,
+    output [31:0] a0  // x10/a0 register for halt exit code
 );
 
   // 32 registers, each 32 bits wide
@@ -17,6 +18,7 @@ module register_file (
   // x0 is hardwired to 0
   assign rsa = (rs1 == 5'b0) ? 32'b0 : registers[rs1];
   assign rsb = (rs2 == 5'b0) ? 32'b0 : registers[rs2];
+  assign a0 = registers[10];  // a0 is x10
 
   // Write operation (sequential logic)
   integer i;

@@ -19,6 +19,10 @@ void putch(char ch) {
 }
 
 void halt(int code) {
+  // Put the exit code in a0 register (x10) before ebreak
+  // a0 = 0 means success (HIT GOOD TRAP)
+  // a0 != 0 means failure (HIT BAD TRAP)
+  asm volatile("mv a0, %0" : : "r"(code));
   // Use inline assembly to execute ebreak instruction
   // This notifies the NPC simulation environment to stop
   asm volatile("ebreak");

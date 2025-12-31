@@ -28,6 +28,7 @@ module core (
   // Register file outputs
   wire [31:0] rsa;
   wire [31:0] rsb;
+  wire [31:0] reg_a0;  // a0 register for halt exit code
 
   // Write enable: write to register for these instruction types
   wire reg_write_en = jalr | op_imm | op_reg | lui | load;
@@ -71,7 +72,8 @@ module core (
       .data(reg_writeback_data),
       .write_en(reg_write_en),
       .rsa(rsa),
-      .rsb(rsb)
+      .rsb(rsb),
+      .a0(reg_a0)
   );
 
   // ALU Control outputs
@@ -136,12 +138,12 @@ module core (
   assign reg_writeback_data = jalr ? static_next_pc : result_or_r_data;
 
   // DPI-C function for ebreak
-  import "DPI-C" function void set_ebreak();
+  import "DPI-C" function void set_ebreak(input int exit_code);
 
   // Call set_ebreak when ebreak instruction is executed
   always @(posedge clk) begin
     if (ebreak) begin
-      set_ebreak();
+      set_ebreak(reg_a0);
     end
   end
 
