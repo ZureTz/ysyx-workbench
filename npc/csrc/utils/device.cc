@@ -1,5 +1,6 @@
-#include "device.h"
 #include <cstdio>
+
+#include "device.h"
 
 // Forward declarations for device functions
 extern uint32_t serial_port_read(uint32_t addr);

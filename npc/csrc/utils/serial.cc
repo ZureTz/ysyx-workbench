@@ -1,4 +1,5 @@
 #include <cstdio>
+
 #include "device.h"
 
 // Serial port data register

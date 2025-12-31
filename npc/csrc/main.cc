@@ -52,7 +52,7 @@ int main(int argc, char const *argv[]) {
   bool success = false;
 
   printf("Starting NPC simulation...\n");
-  printf("Initial PC after reset: 0x%08x\n, Inst=0x%08x\n",
+  printf("Initial PC after reset: 0x%08x, Inst=0x%08x\n",
          top->instruction_addr_debug, top->instruction_debug);
 
 #ifdef MAX_SIM_CYCLES

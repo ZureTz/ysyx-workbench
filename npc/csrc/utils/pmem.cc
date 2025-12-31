@@ -97,8 +97,6 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask, int pc) {
 
   // Check if this is a device address (MMIO)
   if (is_device_addr(addr)) {
-    printf("\nWriting to device address 0x%08x from PC=0x%08x\n", addr,
-           (uint32_t)pc);
     device_write(addr, wdata, wmask, pc);
     return;
   }

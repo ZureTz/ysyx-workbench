@@ -1,6 +1,8 @@
-#include "device.h"
 #include <cstdint>
+
 #include <sys/time.h>
+
+#include "device.h"
 
 // Boot time to calculate uptime
 static uint64_t boot_time = 0;
