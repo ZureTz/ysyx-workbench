@@ -6,8 +6,8 @@ CC = minirv-gcc
 AS = minirv-gcc
 CXX = minirv-g++
 
-COMMON_CFLAGS += -march=rv32e_zicsr -mabi=ilp32e  # overwrite
-LDFLAGS       += -melf32lriscv                    # overwrite
+COMMON_CFLAGS += -march=rv32em_zicsr -mabi=ilp32e  # overwrite with M extension
+LDFLAGS       += -melf32lriscv                     # overwrite
 
 AM_SRCS += riscv/npc/libgcc/div.S \
            riscv/npc/libgcc/muldi3.S \
