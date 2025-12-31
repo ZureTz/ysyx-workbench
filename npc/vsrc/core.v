@@ -140,7 +140,7 @@ module core (
 
   // Call set_ebreak when ebreak instruction is executed
   always @(posedge clk) begin
-    if (ebreak && !reset) begin
+    if (ebreak) begin
       set_ebreak();
     end
   end

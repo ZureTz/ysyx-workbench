@@ -1,6 +1,8 @@
 module alu_control (
     input [2:0] funct3,
+    /* verilator lint_off UNUSEDSIGNAL */
     input [6:0] funct7,
+    /* verilator lint_on UNUSEDSIGNAL */
     input op_imm,
     input op_reg,
     input lui,

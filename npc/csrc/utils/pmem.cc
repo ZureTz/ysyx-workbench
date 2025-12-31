@@ -59,11 +59,18 @@ void init_pmem(const char *img_file) {
 }
 
 // DPI-C function: Read 4 bytes from aligned address
-extern "C" int pmem_read(int raddr) {
+extern "C" int pmem_read(int raddr, int pc, unsigned char is_instruction) {
   uint32_t addr = (uint32_t)raddr & ~0x3u; // Align to 4 bytes
 
   if (!in_pmem(addr)) {
-    printf("Error: Read address 0x%08x out of bound\n", addr);
+    if (is_instruction) {
+      // Instruction fetch from invalid address is a critical error
+      printf("Error: Read instruction from address 0x%08x out of bound "
+             "(PC=0x%08x)\n",
+             addr, (uint32_t)pc);
+    }
+    // For data access, silently return 0 (many addresses may be probed but not
+    // actually used)
     return 0;
   }
 
@@ -72,11 +79,12 @@ extern "C" int pmem_read(int raddr) {
 }
 
 // DPI-C function: Write up to 4 bytes to aligned address with byte mask
-extern "C" void pmem_write(int waddr, int wdata, char wmask) {
+extern "C" void pmem_write(int waddr, int wdata, char wmask, int pc) {
   uint32_t addr = (uint32_t)waddr & ~0x3u; // Align to 4 bytes
 
   if (!in_pmem(addr)) {
-    printf("Error: Write address 0x%08x out of bound\n", addr);
+    printf("Error: Write address 0x%08x out of bound (PC=0x%08x)\n", addr,
+           (uint32_t)pc);
     return;
   }
 

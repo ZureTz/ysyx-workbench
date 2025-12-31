@@ -27,10 +27,10 @@ module lsu (
 
   // ===== WRITE PATH =====
   // Select byte from w_data_in based on low_addr
-  wire [31:0] byte_sel_00 = w_data_in[7:0] << 5'h0;
-  wire [31:0] byte_sel_01 = w_data_in[15:8] << 5'h8;
-  wire [31:0] byte_sel_10 = w_data_in[23:16] << 5'h10;
-  wire [31:0] byte_sel_11 = w_data_in[31:24] << 5'h18;
+  wire [31:0] byte_sel_00 = {24'b0, w_data_in[7:0]} << 0;
+  wire [31:0] byte_sel_01 = {24'b0, w_data_in[15:8]} << 8;
+  wire [31:0] byte_sel_10 = {24'b0, w_data_in[23:16]} << 16;
+  wire [31:0] byte_sel_11 = {24'b0, w_data_in[31:24]} << 24;
 
   // Multiplex based on low_addr to select which byte to write
   wire [31:0] selected_write_word = (low_addr == 2'b00) ? byte_sel_00 :

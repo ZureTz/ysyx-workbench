@@ -8,5 +8,5 @@
 void init_pmem(const char *img_file);
 
 // DPI-C functions for memory access
-extern "C" int pmem_read(int raddr);
-extern "C" void pmem_write(int waddr, int wdata, char wmask);
+extern "C" int pmem_read(int raddr, int pc, unsigned char is_instruction);
+extern "C" void pmem_write(int waddr, int wdata, char wmask, int pc);

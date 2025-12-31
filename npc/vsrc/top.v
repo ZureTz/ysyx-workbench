@@ -1,11 +1,18 @@
 module top (
     input clk,
-    input rst
+    input rst,
+    // Debug outputs
+    output [31:0] instruction_addr_debug,
+    output [31:0] instruction_debug
 );
 
   // Wires for instruction memory
   wire [31:0] instruction_addr;
   wire [31:0] instruction;
+
+  // Connect debug outputs
+  assign instruction_addr_debug = instruction_addr;
+  assign instruction_debug = instruction;
 
   // Wires for data memory
   wire [31:0] data_addr;
@@ -33,6 +40,8 @@ module top (
       .w_data(32'b0),
       .w_mask(4'b0),
       .w_enable(1'b0),
+      .pc_debug(instruction_addr),
+      .is_instr(1'b1),
       .r_data(instruction)
   );
 
@@ -42,6 +51,8 @@ module top (
       .w_data(data_w_data),
       .w_mask(data_w_mask),
       .w_enable(data_w_enable),
+      .pc_debug(instruction_addr),
+      .is_instr(1'b0),
       .r_data(data_r_data)
   );
 

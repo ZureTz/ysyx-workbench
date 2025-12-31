@@ -57,7 +57,9 @@ module instruction_decoder (
 endmodule
 
 module immediate_generator (
+    /* verilator lint_off UNUSEDSIGNAL */
     input  [31:0] instruction,
+    /* verilator lint_on UNUSEDSIGNAL */
     output [31:0] I_immediate,
     output [31:0] U_immediate,
     output [31:0] S_immediate

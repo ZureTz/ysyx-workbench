@@ -9,8 +9,10 @@ BIN = $(BUILD_DIR)/$(TOPNAME)
 VERILATOR = verilator
 VERILATOR_FLAGS = --cc --exe --build --trace -j 0 -Wall -Wno-DECLFILENAME -CFLAGS "-std=c++23 -I$(abspath ./csrc/include)"
 
+IMG ?=
+
 sim: $(BIN)
-	$(BIN)
+	$(BIN) $(IMG)
 
 $(BIN): $(VSRCS) $(CSRCS)
 	@mkdir -p $(OBJ_DIR)
