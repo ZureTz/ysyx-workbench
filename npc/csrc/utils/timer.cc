@@ -1,6 +1,6 @@
 #include <cstdint>
 
-#include <sys/time.h>
+#include <time.h>
 
 #include "device.h"
 
@@ -9,9 +9,9 @@ static uint64_t boot_time = 0;
 
 // Get current time in microseconds
 static uint64_t get_time_us() {
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  return (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
 }
 
 // Initialize timer
